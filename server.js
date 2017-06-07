@@ -420,7 +420,7 @@ const server = app.listen(app.get('port'), () => {
   }, 500);
   setInterval(function () {
     reportUrl();
-  }, 60*1000)
+  }, 5*60*1000)
 });
 
 /* --- Client push setup and functions ---------------------------------- */
