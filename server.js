@@ -12,11 +12,11 @@ var client = new Client();
 
 /* --- State variables ------------------------------- */
 
-const stepFactor = 230;       // Factor for computing number of steps from %
-const stepRange = 500;        // Number of steps for each separate motor run
-var currentFlagPosition = 0;  // Current flag position in steps
-var nextFlagPosition = 0;     // Flag position in steps
-var flagStatus = 0;           // 0=init, 1=calibrate, 2=stopped, 3=moving
+const stepFactor = 230; // Factor for computing number of steps from %
+const stepRange = 500; // Number of steps for each separate motor run
+var currentFlagPosition = 0; // Current flag position in steps
+var nextFlagPosition = 0; // Flag position in steps
+var flagStatus = 0; // 0=init, 1=calibrate, 2=stopped, 3=moving
 
 var ledFunction = {
   OFF: 'Off',
@@ -183,15 +183,13 @@ function calibrateFlag() {
     motor1.step(stepRange, function () {
       if (readPositionFlagSensor() == 1) {
         calibrateFlag();
-      }
-      else {
+      } else {
         lightsOffRgbLed();
         currentFlagPosition = 0;
         flagStatus = 2;
       }
     })
-  }
-  else {
+  } else {
     currentFlagPosition = 0;
     flagStatus = 2;
   }
@@ -206,18 +204,17 @@ function MoveFlagToPosition() {
     if (steps < -stepRange) {
       steps = -stepRange;
     }
-    motor1.step(steps, function () {
-      currentFlagPosition -= steps;
-      if (readPositionFlagSensor() == 1) {
-        MoveFlagToPosition();
-      }
-      else {
-        flagStatus = 2;
-        currentFlagPosition = 0;
-      }
-    })
-  }
-  else {
+    motor1
+      .step(steps, function () {
+        currentFlagPosition -= steps;
+        if (readPositionFlagSensor() == 1) {
+          MoveFlagToPosition();
+        } else {
+          flagStatus = 2;
+          currentFlagPosition = 0;
+        }
+      })
+  } else {
     flagStatus = 2;
   }
 }
@@ -245,7 +242,7 @@ var neoPixelColorSet = [
   colorCombine(0, 0, 255),
   colorCombine(255, 0, 0),
   colorCombine(0, 255, 0),
-  colorCombine(0, 0, 255),
+  colorCombine(0, 0, 255)
 ];
 
 /* --- Processing functions ---------------------------------- */
@@ -254,8 +251,11 @@ function reportUrl() {
   var link = 'http://' + ip.address() + ':3000';
   var url = 'https://buildflag-hub.herokuapp.com/api/updateTarget?name=' + os.hostname() + '&link=' + link;
   console.log(url)
-  client.post(url, function (data, response) {
+  var req = client.post(url, function (data, response) {
     console.log(url)
+  });
+  req.on('error', function (err) {
+    console.log('reportUrl error', err);
   });
 }
 
@@ -299,8 +299,7 @@ function processRgbLed() {
         setLedColor(1, rgbLedColorSet[1]);
         setLedColor(2, rgbLedColorSet[2]);
         rgbLedBlinkState = false
-      }
-      else {
+      } else {
         lightsOffRgbLed();
         rgbLedBlinkState = true;
       }
@@ -329,8 +328,7 @@ function processNeoPixel() {
       if (neoPixelBlinkState) {
         ws281x.render(neoPixelColorSet);
         neoPixelBlinkState = false
-      }
-      else {
+      } else {
         lightsOffNeoPixel();
         neoPixelBlinkState = true;
       }
@@ -341,16 +339,17 @@ function processNeoPixel() {
 /* --- Rest api ---------------------------------- */
 
 // Get status, flag positions in %, rgb led function, neopixel function
-app.get('/getStatus', function (req, res) {
-  res.json({
-    flagPosition: {
-      current: Math.round(currentFlagPosition / stepFactor),
-      next: Math.round(nextFlagPosition / stepFactor)
-    },
-    rgbLedFunction: getLedFunctionEnumString(rgbLedFunction),
-    neoPixelFunction: getLedFunctionEnumString(neoPixelFunction)
-  });
-})
+app
+  .get('/getStatus', function (req, res) {
+    res.json({
+      flagPosition: {
+        current: Math.round(currentFlagPosition / stepFactor),
+        next: Math.round(nextFlagPosition / stepFactor)
+      },
+      rgbLedFunction: getLedFunctionEnumString(rgbLedFunction),
+      neoPixelFunction: getLedFunctionEnumString(neoPixelFunction)
+    });
+  })
 
 // Set flag position in %
 app.get('/setflag/:position', function (req, res) {
@@ -404,11 +403,14 @@ function shutdown(signal, value) {
   });
 }
 
-Object.keys(signals).forEach(function (signal) {
-  process.on(signal, function () {
-    shutdown(signal, signals[signal]);
+Object
+  .keys(signals)
+  .forEach(function (signal) {
+    process
+      .on(signal, function () {
+        shutdown(signal, signals[signal]);
+      });
   });
-});
 
 // Main processing loop, runs 2Hz
 const server = app.listen(app.get('port'), () => {
@@ -420,7 +422,7 @@ const server = app.listen(app.get('port'), () => {
   }, 500);
   setInterval(function () {
     reportUrl();
-  }, 5*60*1000)
+  }, 5 * 60 * 1000)
 });
 
 /* --- Client push setup and functions ---------------------------------- */
@@ -435,14 +437,9 @@ function notifyChangedFlagPosition() {
 }
 
 function notifyChangedRgbLedFunction() {
-  io.emit("rgbLedFunction", {
-    rgbLedFunction: getLedFunctionEnumString(rgbLedFunction),
-  });
+  io.emit("rgbLedFunction", {rgbLedFunction: getLedFunctionEnumString(rgbLedFunction)});
 }
 
 function notifyChangedNeoPixelFunction() {
-  io.emit("neoPixelFunction", {
-    neoPixelFunction: getLedFunctionEnumString(neoPixelFunction),
-  });
+  io.emit("neoPixelFunction", {neoPixelFunction: getLedFunctionEnumString(neoPixelFunction)});
 }
-
