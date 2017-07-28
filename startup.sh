@@ -7,4 +7,4 @@
 #
 
 cd /home/pi/share/build-flag
-sudo npm start
+sudo npm start >> build-flag.log 2>> build-flag_err.log
